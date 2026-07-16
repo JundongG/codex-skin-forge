@@ -1,0 +1,13 @@
+请在当前客户专属皮肤会话中执行以下本地验收，不要读取或输出聊天内容、账号信息、项目路径、API Key 或其他私人数据：
+
+1. 运行：powershell -ExecutionPolicy Bypass -File .\scripts\verify.ps1 -ScreenshotPath .\acceptance.png
+2. 运行：powershell -ExecutionPolicy Bypass -File .\scripts\diagnostics.ps1
+3. 检查 acceptance.png，并只汇报：
+   - 客户主视觉、客户名、文案和签名是否正确；
+   - 首页、侧边栏、输入框、任务页、设置弹窗、代码块和 diff 是否可读；
+   - 所有按钮、输入框、拖动区是否仍可正常操作；
+   - 100%、125%、150% 缩放下是否有遮挡或横向溢出；
+   - 验证结果中的 installed、stylePresent、chromePresent、chromePointerEvents 和 overflowX；
+   - 日志中是否有与本皮肤有关的错误。
+
+若界面异常，先运行已安装目录中的 restore.ps1，或双击桌面的“恢复原版”快捷方式。不要修改官方 Codex 文件。

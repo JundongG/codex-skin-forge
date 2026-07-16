@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "CLIENT_ID",
+  "name": "CLIENT_NAME 专属 Codex 皮肤",
+  "version": "0.3.0",
+  "customizationRequired": true,
+  "brandTitle": "CLIENT_NAME 专属定制皮肤",
+  "brandSubtitle": "Codex App Limited Edition",
+  "headline": "我们一起创造什么？",
+  "tagline": "CLIENT_TAGLINE",
+  "signature": "CLIENT_SIGNATURE",
+  "badge": "EXCLUSIVE",
+  "heroAsset": "assets/customer-hero.png",
+  "baseAppearance": {
+    "theme": "dark",
+    "codeThemeId": "material",
+    "accent": "#C89B5B",
+    "contrast": 68,
+    "ink": "#F1DFC0",
+    "surface": "#0B0D0E",
+    "diffAdded": "#64B88A",
+    "diffRemoved": "#D96C75",
+    "skill": "#D8B36A",
+    "uiFont": "Microsoft YaHei UI",
+    "codeFont": "Cascadia Code"
+  },
+  "testedCodexVersions": [
+    "26.707.9981.0"
+  ]
+}

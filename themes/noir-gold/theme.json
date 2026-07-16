@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "noir-gold",
+  "name": "Noir Gold / 曜金黑",
+  "version": "0.1.0",
+  "description": "低饱和黑金 Codex 深色主题，强调高可读性和克制的金色点缀。",
+  "testedCodexVersions": [
+    "26.707.9981.0"
+  ],
+  "variants": {
+    "dark": {
+      "codeThemeId": "material",
+      "theme": {
+        "accent": "#C89B5B",
+        "contrast": 68,
+        "fonts": {
+          "code": "Cascadia Code, Consolas, monospace",
+          "ui": "Microsoft YaHei UI, Segoe UI, sans-serif"
+        },
+        "ink": "#F1DFC0",
+        "opaqueWindows": true,
+        "semanticColors": {
+          "diffAdded": "#64B88A",
+          "diffRemoved": "#D96C75",
+          "skill": "#D8B36A"
+        },
+        "surface": "#0B0D0E"
+      }
+    }
+  }
+}

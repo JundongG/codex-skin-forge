@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "codex-defaults",
+  "name": "Codex Defaults",
+  "version": "0.1.0",
+  "description": "用于恢复 Codex 官方浅色和深色主题种子。",
+  "testedCodexVersions": [
+    "26.707.9981.0"
+  ],
+  "variants": {
+    "dark": {
+      "codeThemeId": "codex",
+      "theme": {
+        "accent": "#0169CC",
+        "contrast": 60,
+        "fonts": {
+          "code": null,
+          "ui": null
+        },
+        "ink": "#FCFCFC",
+        "opaqueWindows": false,
+        "semanticColors": {
+          "diffAdded": "#00A240",
+          "diffRemoved": "#E02E2A",
+          "skill": "#B06DFF"
+        },
+        "surface": "#111111"
+      }
+    },
+    "light": {
+      "codeThemeId": "codex",
+      "theme": {
+        "accent": "#0169CC",
+        "contrast": 45,
+        "fonts": {
+          "code": null,
+          "ui": null
+        },
+        "ink": "#0D0D0D",
+        "opaqueWindows": false,
+        "semanticColors": {
+          "diffAdded": "#00A240",
+          "diffRemoved": "#E02E2A",
+          "skill": "#751ED9"
+        },
+        "surface": "#FFFFFF"
+      }
+    }
+  }
+}

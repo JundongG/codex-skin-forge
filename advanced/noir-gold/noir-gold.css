@@ -1,0 +1,287 @@
+:root.codex-noir-gold {
+  color-scheme: dark !important;
+  --ng-gold: #c89b5b;
+  --ng-gold-bright: #e4c18a;
+  --ng-ink: #f1dfc0;
+  --ng-muted: #ae9a7e;
+  --ng-panel: rgba(11, 12, 14, .94);
+  --ng-panel-soft: rgba(22, 21, 20, .86);
+  --ng-line: rgba(200, 155, 91, .31);
+  --ng-line-strong: rgba(228, 193, 138, .55);
+  --ng-shadow: 0 18px 48px rgba(0, 0, 0, .42);
+
+  --vscode-foreground: var(--ng-ink);
+  --vscode-sideBar-background: #0b0c0e;
+  --vscode-editor-background: #0c0d0f;
+  --vscode-focusBorder: var(--ng-gold);
+  --vscode-button-background: #926334;
+  --vscode-button-hoverBackground: #ad7b43;
+  --vscode-list-activeSelectionBackground: rgba(200, 155, 91, .20);
+  --vscode-list-hoverBackground: rgba(200, 155, 91, .11);
+
+  --color-token-primary: var(--ng-gold);
+  --color-token-text-accent: var(--ng-gold-bright);
+  --color-token-text-link-foreground: var(--ng-gold-bright);
+  --color-token-focus-border: var(--ng-gold);
+  --color-token-border: var(--ng-line);
+  --color-token-border-default: var(--ng-line);
+  --color-token-border-heavy: var(--ng-line-strong);
+  --color-token-main-surface-primary: rgba(10, 11, 13, .93);
+  --color-token-side-bar-background: #0a0b0d;
+  --color-token-bg-primary: #0a0b0d;
+  --color-token-bg-secondary: rgba(24, 23, 22, .90);
+  --color-token-bg-tertiary: rgba(38, 33, 28, .76);
+  --color-token-bg-fog: rgba(22, 21, 20, .90);
+  --color-token-list-hover-background: rgba(200, 155, 91, .11);
+  --color-token-list-active-selection-background: rgba(200, 155, 91, .20);
+  --color-token-button-background: #926334;
+  --color-token-charts-blue: var(--ng-gold);
+  --color-token-selection-background: rgba(200, 155, 91, .30);
+}
+
+html.codex-noir-gold body {
+  color: var(--ng-ink) !important;
+  background:
+    radial-gradient(circle at 82% 4%, rgba(176, 116, 58, .19), transparent 28%),
+    radial-gradient(circle at 15% 78%, rgba(95, 64, 36, .13), transparent 30%),
+    #08090a !important;
+  font-family: "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif !important;
+}
+
+html.codex-noir-gold body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .19;
+  background-image:
+    radial-gradient(circle, rgba(236, 202, 148, .95) 0 1px, transparent 2px),
+    radial-gradient(circle, rgba(173, 116, 61, .7) 0 1px, transparent 2px);
+  background-position: 0 0, 27px 35px;
+  background-size: 71px 71px, 97px 97px;
+}
+
+html.codex-noir-gold aside.app-shell-left-panel {
+  color: var(--ng-ink) !important;
+  background: linear-gradient(180deg, rgba(9, 10, 12, .98), rgba(15, 15, 16, .96)) !important;
+  border: 1px solid var(--ng-line) !important;
+  border-left: 0 !important;
+  border-radius: 0 17px 17px 0 !important;
+  box-shadow: 10px 0 35px rgba(0, 0, 0, .30), inset -1px 0 rgba(228, 193, 138, .08) !important;
+}
+
+html.codex-noir-gold aside.app-shell-left-panel nav { background: transparent !important; }
+html.codex-noir-gold aside.app-shell-left-panel button { color: #dbc39d !important; }
+html.codex-noir-gold aside.app-shell-left-panel button:hover {
+  color: #f3dfbc !important;
+  background: linear-gradient(90deg, rgba(200, 155, 91, .14), rgba(200, 155, 91, .05)) !important;
+  box-shadow: inset 0 0 0 1px rgba(200, 155, 91, .14) !important;
+}
+html.codex-noir-gold aside.app-shell-left-panel [aria-current="page"] {
+  background: linear-gradient(90deg, rgba(200, 155, 91, .22), rgba(130, 85, 43, .10)) !important;
+  border: 1px solid rgba(228, 193, 138, .26) !important;
+}
+
+html.codex-noir-gold main.main-surface {
+  background:
+    radial-gradient(circle at 82% 7%, rgba(171, 111, 55, .16), transparent 30%),
+    linear-gradient(180deg, rgba(12, 13, 15, .96), rgba(8, 9, 11, .98)) !important;
+  border: 1px solid var(--ng-line) !important;
+  border-right: 0 !important;
+  border-bottom: 0 !important;
+  border-radius: 17px 0 0 0 !important;
+  box-shadow: inset 0 1px rgba(228, 193, 138, .08), -8px 0 32px rgba(0, 0, 0, .24) !important;
+  overflow: hidden !important;
+}
+
+html.codex-noir-gold main.main-surface > header.app-header-tint {
+  background: linear-gradient(90deg, rgba(10, 11, 13, .96), rgba(28, 23, 19, .89), rgba(12, 13, 15, .96)) !important;
+  border-bottom: 1px solid rgba(200, 155, 91, .23) !important;
+  backdrop-filter: blur(18px) !important;
+}
+
+#codex-noir-gold-chrome {
+  position: fixed;
+  left: var(--ng-main-left, 0);
+  top: var(--ng-main-top, 0);
+  width: var(--ng-main-width, 0);
+  height: var(--ng-main-height, 0);
+  z-index: 31;
+  display: none;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 17px 0 0 0;
+}
+#codex-noir-gold-chrome.ng-home-visible { display: block; }
+
+.ng-brand {
+  position: absolute;
+  left: 26px;
+  top: 8px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  color: var(--ng-gold-bright);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .7);
+}
+#codex-noir-gold-chrome.ng-home-visible .ng-brand { display: flex; }
+.ng-brand-mark { font-size: 27px; filter: drop-shadow(0 0 10px rgba(228, 193, 138, .46)); }
+.ng-brand b { display: block; font-family: Georgia, "Microsoft YaHei UI", serif; font-size: 16px; letter-spacing: .08em; }
+.ng-brand small { display: block; margin-top: 2px; color: var(--ng-muted); font-size: 10px; letter-spacing: .05em; }
+
+.ng-signature {
+  position: absolute;
+  right: 92px;
+  top: 8px;
+  display: none;
+  color: var(--ng-gold-bright);
+  font: italic 20px/1.2 Georgia, serif;
+  letter-spacing: .04em;
+  text-shadow: 0 0 12px rgba(200, 155, 91, .28);
+  transform: rotate(-2deg);
+}
+#codex-noir-gold-chrome.ng-home-visible .ng-signature { display: block; }
+
+.ng-badge {
+  position: absolute;
+  right: 22px;
+  top: 55px;
+  display: none;
+  padding: 7px 13px;
+  border: 1px dashed rgba(228, 193, 138, .48);
+  border-radius: 999px;
+  color: #dec08e;
+  background: rgba(10, 11, 13, .55);
+  font: 700 10px/1 Georgia, serif;
+  letter-spacing: .18em;
+  transform: rotate(3deg);
+}
+#codex-noir-gold-chrome.ng-home-visible .ng-badge { display: block; }
+
+.ng-headline {
+  position: absolute;
+  left: 58px;
+  top: 126px;
+  display: none;
+  width: min(43%, 430px);
+  color: #f5e1bd;
+  text-shadow: 0 3px 18px rgba(0, 0, 0, .88);
+}
+#codex-noir-gold-chrome.ng-home-visible .ng-headline { display: block; }
+.ng-headline strong {
+  display: block;
+  font: 700 clamp(24px, 2.2vw, 34px)/1.24 Georgia, "Microsoft YaHei UI", serif;
+  letter-spacing: .04em;
+}
+.ng-headline span {
+  display: block;
+  margin-top: 13px;
+  color: rgba(238, 211, 169, .88);
+  font: 500 14px/1.55 "Microsoft YaHei UI", sans-serif;
+  letter-spacing: .035em;
+}
+
+.ng-sparkles { position: absolute; inset: 48px 0 0; opacity: .62; }
+.ng-sparkles i { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #f2d9af; box-shadow: 0 0 10px 2px rgba(228, 193, 138, .45); }
+.ng-sparkles i::before, .ng-sparkles i::after { content: ""; position: absolute; left: 2px; top: -5px; width: 1px; height: 14px; background: linear-gradient(transparent, #f5dfba, transparent); }
+.ng-sparkles i::after { transform: rotate(90deg); }
+.ng-sparkles i:nth-child(1) { left: 6%; top: 13%; }
+.ng-sparkles i:nth-child(2) { left: 28%; top: 4%; opacity: .5; }
+.ng-sparkles i:nth-child(3) { left: 52%; top: 18%; }
+.ng-sparkles i:nth-child(4) { left: 72%; top: 8%; opacity: .55; }
+.ng-sparkles i:nth-child(5) { left: 91%; top: 29%; }
+.ng-sparkles i:nth-child(6) { left: 64%; top: 67%; opacity: .42; }
+.ng-sparkles i:nth-child(7) { left: 14%; top: 72%; opacity: .52; }
+.ng-sparkles i:nth-child(8) { left: 84%; top: 78%; opacity: .4; }
+
+.ng-photo-frame {
+  position: absolute;
+  right: 16px;
+  bottom: 78px;
+  width: 112px;
+  height: 142px;
+  display: none;
+  border: 7px solid rgba(238, 226, 205, .94);
+  border-bottom-width: 21px;
+  border-radius: 2px;
+  background-image: var(--ng-hero);
+  background-position: 72% 50%;
+  background-size: auto 150%;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .42), 0 0 0 1px rgba(200, 155, 91, .24);
+  transform: rotate(-6deg);
+}
+#codex-noir-gold-chrome.ng-home-visible .ng-photo-frame { display: block; }
+.ng-photo-frame::after { content: "LIMITED"; position: absolute; left: 0; right: 0; bottom: -17px; color: #5b4128; text-align: center; font: 700 9px/1 Georgia, serif; letter-spacing: .1em; }
+
+html.codex-noir-gold [role="main"] { background: transparent !important; scrollbar-color: rgba(200, 155, 91, .42) transparent; }
+html.codex-noir-gold .ng-home { --thread-content-max-width: min(960px, calc(100cqw - 44px)) !important; overflow-x: hidden !important; }
+.ng-home > div:first-child { padding-top: 15px !important; min-height: 100% !important; }
+.ng-home > div:first-child > div:first-child { flex: 0 0 430px !important; min-height: 430px !important; align-items: flex-start !important; padding-bottom: 0 !important; }
+.ng-home > div:first-child > div:first-child > div:first-child {
+  position: relative !important;
+  isolation: isolate;
+  width: calc(100% - 44px) !important;
+  max-width: none !important;
+  height: 252px !important;
+  min-height: 252px !important;
+  padding: 0 !important;
+  border: 1px solid rgba(228, 193, 138, .52) !important;
+  border-radius: 22px !important;
+  overflow: visible !important;
+  background-image: linear-gradient(90deg, rgba(7, 8, 10, .83), rgba(7, 8, 10, .10)), var(--ng-hero) !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100%, cover !important;
+  background-position: center, center !important;
+  box-shadow: 0 15px 38px rgba(0, 0, 0, .42), inset 0 0 0 3px rgba(228, 193, 138, .07) !important;
+}
+.ng-home > div:first-child > div:first-child > div:first-child > div:first-child { position: relative; z-index: 2; height: 100%; align-items: center !important; justify-content: flex-start !important; padding-left: 38px; }
+.ng-home > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child { width: 54% !important; align-items: flex-start !important; }
+.ng-home [data-testid="home-icon"] { display: none !important; }
+.ng-home [data-feature="game-source"] { visibility: hidden !important; }
+.ng-home > div:first-child > div:first-child > div:first-child > div:nth-child(2) { left: 14px !important; right: 14px !important; top: 100% !important; margin-top: 13px !important; }
+
+.ng-home .group\/home-suggestions { overflow: visible !important; }
+.ng-home .group\/home-suggestions button {
+  min-height: 124px !important;
+  padding: 14px 13px 12px !important;
+  border: 1px solid rgba(200, 155, 91, .34) !important;
+  border-radius: 20px !important;
+  color: #e8cfaa !important;
+  background: radial-gradient(circle at 50% 20%, rgba(228, 193, 138, .08), transparent 34%), linear-gradient(145deg, rgba(24, 24, 24, .96), rgba(12, 13, 15, .96)) !important;
+  box-shadow: 0 9px 22px rgba(0, 0, 0, .30), inset 0 0 0 2px rgba(228, 193, 138, .035) !important;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease !important;
+}
+.ng-home .group\/home-suggestions button:hover { transform: translateY(-3px) !important; border-color: rgba(228, 193, 138, .56) !important; box-shadow: 0 14px 28px rgba(0, 0, 0, .38), 0 0 0 1px rgba(200, 155, 91, .14) !important; }
+.ng-home .group\/home-suggestions button svg { color: var(--ng-gold-bright) !important; }
+
+html.codex-noir-gold .composer-surface-chrome {
+  border: 1px solid rgba(228, 193, 138, .48) !important;
+  border-radius: 22px !important;
+  background: radial-gradient(circle at 88% 20%, rgba(228, 193, 138, .08), transparent 25%), linear-gradient(145deg, rgba(18, 18, 19, .97), rgba(9, 10, 12, .96)) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .36), inset 0 0 0 3px rgba(228, 193, 138, .035) !important;
+  overflow: visible !important;
+}
+html.codex-noir-gold .composer-surface-chrome::before { content: "✦"; position: absolute; left: -13px; top: -13px; z-index: 20; width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid rgba(228, 193, 138, .54); border-radius: 50%; color: #f0d7ad; background: linear-gradient(145deg, #6e4929, #1a1714); box-shadow: 0 5px 14px rgba(0, 0, 0, .35); }
+html.codex-noir-gold .ProseMirror { color: #ead4b1 !important; caret-color: var(--ng-gold-bright) !important; }
+html.codex-noir-gold button[class~="bg-token-foreground"] { color: #120f0b !important; background: linear-gradient(145deg, #dfbb80, #a8723b) !important; box-shadow: 0 5px 14px rgba(104, 65, 28, .34) !important; }
+html.codex-noir-gold ::selection { color: #fff7e9; background: rgba(200, 155, 91, .34); }
+
+@media (max-width: 1120px) {
+  .ng-photo-frame { display: none !important; }
+  .ng-home { --thread-content-max-width: min(860px, calc(100cqw - 30px)) !important; }
+  .ng-home > div:first-child > div:first-child > div:first-child { width: calc(100% - 28px) !important; }
+}
+@media (max-width: 900px) {
+  .ng-signature, .ng-badge { display: none !important; }
+  .ng-brand { left: 15px; }
+  .ng-brand b { font-size: 13px; }
+  .ng-headline { left: 30px; top: 112px; width: 58%; }
+  .ng-home > div:first-child > div:first-child { flex-basis: 394px !important; min-height: 394px !important; }
+  .ng-home > div:first-child > div:first-child > div:first-child { height: 224px !important; min-height: 224px !important; }
+  .ng-home > div:first-child > div:first-child > div:first-child > div:first-child { padding-left: 25px; }
+  .ng-home > div:first-child > div:first-child > div:first-child > div:first-child > div:first-child { width: 67% !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.codex-noir-gold * { scroll-behavior: auto !important; }
+}

@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible problem using non-sensitive test data.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Do not include customer images, account data, API keys, tokens, conversations, or private project paths.
+  - type: input
+    id: codex-version
+    attributes:
+      label: Codex version
+      placeholder: 26.x.x.x
+    validations:
+      required: true
+  - type: dropdown
+    id: windows-version
+    attributes:
+      label: Windows version
+      options:
+        - Windows 11
+        - Windows 10
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem
+      description: Describe the expected and observed behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Use a non-sensitive test theme or fixture.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics
+      description: Remove usernames, paths, account information, and customer content.
