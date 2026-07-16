@@ -11,7 +11,15 @@
 
 ## 远程发送
 
-把 ZIP 和 `.zip.sha256` 一起发给客户。让客户完整解压，然后在自己的 Codex 中打开解压目录。不要让客户提供账号、聊天记录、项目文件或密钥。
+把 ZIP 和 `.zip.sha256` 通过约定渠道一起发给客户，最好再通过另一个可信渠道发送哈希文本。客户解压前先运行：
+
+```powershell
+$expected = ((Get-Content .\Codex-Skin-Forge-*.zip.sha256 -Raw).Trim() -split '\s+')[0]
+$actual = (Get-FileHash .\Codex-Skin-Forge-*.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actual -ne $expected) { throw 'ZIP SHA-256 不匹配，停止安装。' }
+```
+
+让客户完整解压，然后在自己的 Codex 中打开解压目录。不要让客户提供账号、聊天记录、项目文件或密钥。
 
 ## 客户 Codex 安装
 
@@ -32,5 +40,5 @@
 ## 恢复与卸载
 
 - 临时恢复：双击桌面的“恢复原版”快捷方式，或运行已安装的 `engine\restore.ps1 -RestartNormal`。
-- 卸载：运行客户包的 `scripts\uninstall.ps1`，或已安装目录 `%LOCALAPPDATA%\CodexNoirGold\uninstall.ps1`。
+- 卸载：运行客户包的 `scripts\uninstall.ps1`，或已安装目录 `%LOCALAPPDATA%\CodexNoirGold\uninstall.ps1`。默认删除可能包含客户图片的旧备份；只有确需保留时使用 `-KeepBackups`。
 - 卸载只删除本产品文件和快捷方式，不删除 Codex、聊天、项目或账号数据。

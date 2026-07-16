@@ -33,10 +33,13 @@
 ## 安全模型
 
 - CDP 地址显式绑定 `127.0.0.1`，端口每次随机选择。
-- 目标列表只接受 URL 以 `app://` 开头的页面。
+- 目标列表只接受 URL 以 `app://` 开头的页面，并再次校验 WebSocket 必须是同一随机端口上的 `ws://127.0.0.1`。
 - 客户包不执行网络下载。
 - Node 从客户自己的 Codex 中复制，要求 Authenticode 有效、签名者包含 OpenJS Foundation、主版本不低于 22。
-- 记录的注入器 PID 只有在可执行路径等于已安装 Node 时才允许停止。
+- 记录的注入器 PID 只有在可执行路径、注入器脚本、`--watch` 和会话 ID 同时匹配时才允许停止。
+- 安装、启动、恢复和卸载通过当前用户命名互斥锁串行化，重复点击不会产生并发修改或多个等待助手。
+- 升级会事务性备份引擎、主题、复制运行时、卸载器和安装记录；任何提交前失败都会恢复旧版本。
+- 包内校验要求文件集合与 `SHA256SUMS.txt` 完全一致，拒绝额外文件、重复路径、重解析点和弱化后的安全声明。
 - 启动交接只等待客户手动关闭 Codex；普通启动路径不调用强制结束。
 - 视觉装饰 DOM 设置 `aria-hidden` 与 `pointer-events: none`。
 - 诊断只报告版本、PID、端口、主题 ID 和布局状态，不读取界面文本或会话内容。
@@ -48,6 +51,9 @@ START_HERE.md
 INSTALL_PROMPT.txt
 VERIFY_PROMPT.txt
 ASSET_DECLARATION.md
+LICENSE
+NOTICE.md
+ASSET_POLICY.md
 package-manifest.json
 SHA256SUMS.txt
 client/
@@ -84,7 +90,9 @@ scripts/
 - `backups`：升级前本产品自身的旧版本，不包含 Codex 文件。
 - `install.json`：安装审计记录和快捷方式路径。
 
-“恢复原版”先停止已记录的注入器并移除 CSS/DOM。由于 Chromium 的调试开关属于启动参数，关闭该次 Codex 窗口后端口才会完全结束；重新从官方快捷方式启动就是原版会话。
+“恢复原版”先停止经过命令行复核的注入器并移除 CSS/DOM。恢复时优先只关闭本次会话记录的 Codex 主进程；只有用户明确使用 `-ForceClose` 才会强制结束 Codex 包进程。由于 Chromium 的调试开关属于启动参数，关闭该次 Codex 窗口后端口才会完全结束；重新从官方快捷方式启动就是原版会话。
+
+卸载默认删除 `backups`，避免旧客户图片残留；`-KeepBackups` 是需要显式选择的例外。
 
 ## 兼容性边界
 

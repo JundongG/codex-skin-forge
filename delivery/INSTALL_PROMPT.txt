@@ -3,10 +3,10 @@
 你的任务是协助我在这台 Windows 电脑安装本客户专属 Codex 皮肤：
 
 1. 只在这个解压目录和当前用户的 %LOCALAPPDATA%\CodexNoirGold 内操作；不要读取聊天记录、项目内容、认证信息、API Key 或账号文件。
-2. 先运行：powershell -ExecutionPolicy Bypass -File .\scripts\preflight.ps1
+2. 如果原始 ZIP 和 `.zip.sha256` 仍在，请先核对外部 ZIP 哈希；再运行：powershell -ExecutionPolicy Bypass -File .\scripts\preflight.ps1
 3. 向我简要说明预检结果：客户主题名称、主视觉哈希、Codex 版本、无需联网、不会修改 Codex 程序文件。
 4. 预检通过后运行：powershell -ExecutionPolicy Bypass -File .\scripts\start-assisted-install.ps1
-5. 看到 HANDOFF_STARTED 后，把 helper PID 告诉我，并明确提示我“现在完全关闭 Codex”。不要主动终止 Codex 进程。
+5. 看到 HANDOFF_STARTED 后，把 helper PID 告诉我，并明确提示我“现在完全关闭 Codex”。不要主动终止 Codex 进程，也不要重复启动第二个交接助手。
 6. 不要使用 irm | iex、curl | shell、npm install、winget 或其他联网安装方式；运行时来自本机官方 Codex 并会验证签名。
 7. 不要安装额外 tweak、模型供应商、中转服务、账号工具或浏览器扩展。
 

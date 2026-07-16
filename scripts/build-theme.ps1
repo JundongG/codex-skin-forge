@@ -157,7 +157,7 @@ foreach ($variantProperty in $variantProperties) {
         variant = $variantName
     }
 
-    Write-Host "Built $outputFile"
+    Write-Output "Built $outputFile"
 }
 
 $buildManifest = [ordered]@{
@@ -175,4 +175,4 @@ $buildManifestPath = Join-Path $resolvedOutputDirectory "$id.build.json"
     ($buildManifest | ConvertTo-Json -Depth 10) + [Environment]::NewLine,
     $utf8NoBom
 )
-Write-Host "Built $buildManifestPath"
+Write-Output "Built $buildManifestPath"

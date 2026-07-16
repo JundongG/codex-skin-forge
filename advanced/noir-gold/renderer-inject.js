@@ -29,11 +29,13 @@
     addText(copy, "small", "", theme.brandSubtitle);
     brand.append(copy);
 
-    const signature = addText(document.createElement("div"), "span", "", theme.signature);
-    signature.parentElement.className = "ng-signature";
+    const signature = document.createElement("div");
+    signature.className = "ng-signature";
+    addText(signature, "span", "", theme.signature);
 
-    const badge = addText(document.createElement("div"), "span", "", theme.badge);
-    badge.parentElement.className = "ng-badge";
+    const badge = document.createElement("div");
+    badge.className = "ng-badge";
+    addText(badge, "span", "", theme.badge);
 
     const headline = document.createElement("div");
     headline.className = "ng-headline";
@@ -47,7 +49,7 @@
     const frame = document.createElement("div");
     frame.className = "ng-photo-frame";
 
-    chrome.append(brand, signature.parentElement, badge.parentElement, headline, sparkles, frame);
+    chrome.append(brand, signature, badge, headline, sparkles, frame);
     return chrome;
   };
 
@@ -87,6 +89,7 @@
     } else {
       chrome.classList.remove("ng-home-visible");
     }
+    chrome.classList.toggle("ng-modal-open", Boolean(document.querySelector('[role="dialog"]')));
   };
 
   const state = {

@@ -1,4 +1,4 @@
-# Noir Gold / 曜金黑高级版
+# Noir Gold / 曜金黑高级版 0.3.1
 
 CDP 注入型 Codex 桌面皮肤。它不修改 `WindowsApps`、`app.asar` 或官方签名；所有装饰层均为 `pointer-events: none`，原生侧栏、建议卡、项目选择和输入框保持可交互。
 

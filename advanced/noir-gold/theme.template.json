@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "CLIENT_ID",
   "name": "CLIENT_NAME 专属 Codex 皮肤",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "customizationRequired": true,
   "brandTitle": "CLIENT_NAME 专属定制皮肤",
   "brandSubtitle": "Codex App Limited Edition",
@@ -25,6 +25,7 @@
     "codeFont": "Cascadia Code"
   },
   "testedCodexVersions": [
-    "26.707.9981.0"
+    "26.707.9981.0",
+    "26.707.12708.0"
   ]
 }

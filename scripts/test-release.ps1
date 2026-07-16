@@ -9,10 +9,14 @@ $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('codex-noir-gold-release-test-
 try {
     Expand-Archive -LiteralPath $ZipPath -DestinationPath $testRoot -Force
     foreach ($relative in @(
+        'LICENSE', 'NOTICE.md', 'ASSET_POLICY.md',
         'START_HERE.md', 'INSTALL_PROMPT.txt', 'VERIFY_PROMPT.txt', 'ASSET_DECLARATION.md',
         'package-manifest.json', 'SHA256SUMS.txt', 'scripts\preflight.ps1',
-        'scripts\start-assisted-install.ps1', 'scripts\uninstall.ps1',
-        'engine\injector.mjs', 'client\theme.json', 'client\noir-gold.css',
+        'scripts\install.ps1', 'scripts\start-assisted-install.ps1', 'scripts\verify.ps1',
+        'scripts\diagnostics.ps1', 'scripts\uninstall.ps1',
+        'engine\common.ps1', 'engine\injector.mjs', 'engine\start.ps1',
+        'engine\start-worker.ps1', 'engine\verify.ps1', 'engine\restore.ps1',
+        'engine\diagnostics.ps1', 'client\theme.json', 'client\noir-gold.css',
         'client\renderer-inject.js'
     )) {
         if (-not (Test-Path -LiteralPath (Join-Path $testRoot $relative))) { throw "Release is missing: $relative" }
@@ -24,6 +28,11 @@ try {
     $hero = Join-Path (Join-Path $testRoot 'client') ([string]$theme.heroAsset)
     if (-not (Test-Path -LiteralPath $hero -PathType Leaf)) { throw 'Packaged customer hero image is missing.' }
     & (Join-Path $testRoot 'scripts\preflight.ps1') -PackageRoot $testRoot -SkipCodexCheck | Out-Null
+    $node = Get-Command node.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
+    if ($node) {
+        & $node (Join-Path $testRoot 'engine\injector.mjs') --validate-theme --theme-root (Join-Path $testRoot 'client') | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Packaged renderer payload validation failed.' }
+    }
     Write-Output "Release verification passed: $ZipPath"
 } finally {
     $full = [IO.Path]::GetFullPath($testRoot)
