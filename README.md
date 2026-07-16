@@ -43,8 +43,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\create-client-package.ps1 `
 输出位于 `release/`：
 
 ```text
-Codex-Noir-Gold-client-name-0.3.0.zip
-Codex-Noir-Gold-client-name-0.3.0.zip.sha256
+Codex-Skin-Forge-Noir-Gold-client-name-0.3.1.zip
+Codex-Skin-Forge-Noir-Gold-client-name-0.3.1.zip.sha256
 ```
 
 完整自动化检查：

@@ -9,6 +9,18 @@ function Assert-True([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw $Message }
 }
 
+$jsonFiles = @(
+    Get-ChildItem -LiteralPath (Join-Path $workspace 'advanced') -Recurse -Filter '*.json' -File
+    Get-ChildItem -LiteralPath (Join-Path $workspace 'themes') -Recurse -Filter '*.json' -File
+)
+foreach ($jsonFile in $jsonFiles) {
+    try {
+        Get-Content -LiteralPath $jsonFile.FullName -Raw -Encoding UTF8 | ConvertFrom-Json | Out-Null
+    } catch {
+        throw "Invalid UTF-8 JSON source file: $($jsonFile.FullName). $($_.Exception.Message)"
+    }
+}
+
 $template = Get-Content -LiteralPath (Join-Path $workspace 'advanced\noir-gold\theme.template.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 Assert-True ($template.customizationRequired -eq $true) 'Source theme must remain an unshippable customer template.'
 Assert-True ([string]$template.heroAsset -eq 'assets/customer-hero.png') 'Unexpected template hero path.'
@@ -21,8 +33,19 @@ Assert-True ($renderer -match '__NOIR_HERO_JSON__') 'Renderer template must rece
 Assert-True ($css -match 'pointer-events:\s*none') 'Decorative layer must not intercept user input.'
 Assert-True ($injector -match 'http://127\.0\.0\.1:') 'CDP discovery must use explicit loopback.'
 Assert-True ($injector -match 'target\.url\.startsWith\("app://"\)') 'Injector must target only Codex app pages.'
+Assert-True ($injector -match 'socketUrl\.hostname === "127\.0\.0\.1"') 'CDP WebSocket targets must remain on loopback.'
 Assert-True ($startWorker -match '--remote-debugging-address=127\.0\.0\.1') 'Codex debugging must bind to loopback.'
 Assert-True ($startWorker -notmatch 'Stop-Process.+ChatGPT|taskkill') 'The themed launcher must not force-close Codex.'
+$common = Get-Content -LiteralPath (Join-Path $workspace 'engine\common.ps1') -Raw -Encoding UTF8
+$installer = Get-Content -LiteralPath (Join-Path $workspace 'delivery\scripts\install.ps1') -Raw -Encoding UTF8
+$uninstaller = Get-Content -LiteralPath (Join-Path $workspace 'delivery\scripts\uninstall.ps1') -Raw -Encoding UTF8
+Assert-True ($common -match 'Test-CommandLineMatch') 'Recorded injector shutdown must verify the command line.'
+Assert-True ($common -match 'Get-SystemPowerShellPath') 'Launchers must resolve Windows PowerShell from System32.'
+Assert-True ($common -match [regex]::Escape("`$script:ProductVersion = '$($template.version)'")) 'Engine and source theme versions must match.'
+Assert-True ($installer -match 'Move-ProductPathToBackup') 'Installer must back up managed paths transactionally.'
+Assert-True ($installer -match 'Enter-ProductMutex') 'Installer must serialize lifecycle operations.'
+Assert-True ($installer -match 'install-transaction\.json' -and $installer -match "phase = 'backed-up'") 'Installer must journal hard-interruption recovery.'
+Assert-True ($uninstaller -match 'KeepBackups') 'Uninstaller must make customer-backup retention explicit.'
 
 $forbiddenInstallerPatterns = @('Invoke-WebRequest', 'Invoke-RestMethod', 'Start-BitsTransfer', 'irm\s*\|', 'curl\s+.+\|')
 $installSources = @(Get-ChildItem -LiteralPath (Join-Path $workspace 'delivery\scripts') -Filter '*.ps1' -File) + @(Get-Item -LiteralPath (Join-Path $workspace 'scripts\create-client-package.ps1'))
@@ -36,6 +59,7 @@ foreach ($sourceFile in $installSources) {
 $scriptFiles = @(Get-ChildItem -LiteralPath (Join-Path $workspace 'delivery\scripts') -Filter '*.ps1' -File)
 $scriptFiles += @(Get-ChildItem -LiteralPath (Join-Path $workspace 'engine') -Filter '*.ps1' -File)
 $scriptFiles += @(Get-ChildItem -LiteralPath (Join-Path $workspace 'scripts') -Filter '*.ps1' -File)
+$scriptFiles += @(Get-ChildItem -LiteralPath (Join-Path $workspace 'tests') -Filter '*.ps1' -File)
 foreach ($scriptFile in $scriptFiles) {
     $tokens = $null
     $errors = $null
@@ -55,6 +79,8 @@ if ($nodeCandidates) {
     if ($LASTEXITCODE -ne 0) { throw 'node --check failed for engine/injector.mjs.' }
     & $nodeCandidates --check (Join-Path $workspace 'advanced\noir-gold\renderer-inject.js')
     if ($LASTEXITCODE -ne 0) { throw 'node --check failed for renderer-inject.js.' }
+    & $nodeCandidates (Join-Path $workspace 'tests\injector-security.test.mjs')
+    if ($LASTEXITCODE -ne 0) { throw 'Injector security tests failed.' }
 } else {
     Write-Warning 'Node.js was not available for JavaScript syntax checks; package preflight will copy Codex bundled Node on the client.'
 }

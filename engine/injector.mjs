@@ -1,85 +1,190 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
-function parseArgs(argv) {
+const MAX_THEME_BYTES = 64 * 1024;
+const MAX_TEXT_ASSET_BYTES = 1024 * 1024;
+const MAX_HERO_BYTES = 16 * 1024 * 1024;
+const TEMPLATE_TOKENS = [
+  "__NOIR_CSS_JSON__",
+  "__NOIR_THEME_JSON__",
+  "__NOIR_HERO_JSON__",
+];
+
+export function parseArgs(argv) {
   const options = {
     port: 0,
     mode: "watch",
     timeoutMs: 30000,
     idleExitMs: 30000,
+    commandTimeoutMs: 7000,
     screenshot: null,
     themeRoot: null,
+    sessionId: null,
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--port") options.port = Number(argv[++index]);
     else if (arg === "--theme-root") options.themeRoot = path.resolve(argv[++index]);
+    else if (arg === "--session-id") options.sessionId = String(argv[++index] ?? "");
     else if (arg === "--watch") options.mode = "watch";
     else if (arg === "--once") options.mode = "once";
     else if (arg === "--verify") options.mode = "verify";
     else if (arg === "--remove") options.mode = "remove";
+    else if (arg === "--validate-theme") options.mode = "validate-theme";
     else if (arg === "--timeout-ms") options.timeoutMs = Number(argv[++index]);
     else if (arg === "--idle-exit-ms") options.idleExitMs = Number(argv[++index]);
+    else if (arg === "--command-timeout-ms") options.commandTimeoutMs = Number(argv[++index]);
     else if (arg === "--screenshot") options.screenshot = path.resolve(argv[++index]);
     else throw new Error(`Unknown argument: ${arg}`);
   }
-  if (!Number.isInteger(options.port) || options.port < 1024 || options.port > 65535) {
+  if (!options.themeRoot) throw new Error("--theme-root is required");
+  if (options.mode !== "validate-theme" &&
+      (!Number.isInteger(options.port) || options.port < 1024 || options.port > 65535)) {
     throw new Error(`Invalid loopback CDP port: ${options.port}`);
   }
-  if (!options.themeRoot) throw new Error("--theme-root is required");
+  if (!Number.isInteger(options.timeoutMs) || options.timeoutMs < 100 || options.timeoutMs > 120000) {
+    throw new Error(`Invalid timeout: ${options.timeoutMs}`);
+  }
+  if (!Number.isInteger(options.idleExitMs) || options.idleExitMs < 1000 || options.idleExitMs > 300000) {
+    throw new Error(`Invalid idle exit timeout: ${options.idleExitMs}`);
+  }
+  if (!Number.isInteger(options.commandTimeoutMs) ||
+      options.commandTimeoutMs < 500 || options.commandTimeoutMs > 60000) {
+    throw new Error(`Invalid CDP command timeout: ${options.commandTimeoutMs}`);
+  }
+  if (options.mode === "watch" && !/^[a-f0-9]{32}$/i.test(options.sessionId ?? "")) {
+    throw new Error("--session-id with a 32-character hexadecimal value is required in watch mode");
+  }
   return options;
 }
 
-function assertInside(target, root, label) {
+function assertRelativeInside(target, root, label) {
   const relative = path.relative(root, target);
-  if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    throw new Error(`${label} escaped theme root: ${target}`);
+  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error(`${label} must stay inside theme root: ${target}`);
   }
+}
+
+async function resolveRealInside(target, rootReal, label) {
+  const targetReal = await fs.realpath(target);
+  assertRelativeInside(targetReal, rootReal, label);
+  return targetReal;
 }
 
 function mimeFor(filename) {
   const extension = path.extname(filename).toLowerCase();
   if (extension === ".png") return "image/png";
   if (extension === ".jpg" || extension === ".jpeg") return "image/jpeg";
-  if (extension === ".webp") return "image/webp";
   throw new Error(`Unsupported hero image type: ${extension || "none"}`);
 }
 
-async function loadPayload(themeRoot) {
-  const themePath = path.join(themeRoot, "theme.json");
-  const cssPath = path.join(themeRoot, "noir-gold.css");
-  const templatePath = path.join(themeRoot, "renderer-inject.js");
-  const theme = JSON.parse(await fs.readFile(themePath, "utf8"));
-  if (theme.customizationRequired === true) {
-    throw new Error("Theme is still marked customizationRequired; build a customer package first.");
+function assertThemeText(theme, name, maximumLength) {
+  const value = theme[name];
+  if (typeof value !== "string" || value.trim().length === 0 || value.length > maximumLength) {
+    throw new Error(`theme.${name} must be a non-empty string of at most ${maximumLength} characters`);
   }
-  if (!theme.heroAsset || typeof theme.heroAsset !== "string") {
-    throw new Error("theme.heroAsset is required");
+  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u202a-\u202e\u2066-\u2069]/u.test(value)) {
+    throw new Error(`theme.${name} contains disallowed control or bidirectional characters`);
+  }
+}
+
+async function readLimited(filename, maximumBytes, label, encoding = null) {
+  const stat = await fs.stat(filename);
+  if (!stat.isFile()) throw new Error(`${label} is not a regular file`);
+  if (stat.size <= 0 || stat.size > maximumBytes) {
+    throw new Error(`${label} size ${stat.size} is outside the allowed range`);
+  }
+  return fs.readFile(filename, encoding ?? undefined);
+}
+
+function replaceExactlyOnce(source, token, replacement) {
+  const first = source.indexOf(token);
+  if (first < 0 || source.indexOf(token, first + token.length) >= 0) {
+    throw new Error(`Renderer template must contain ${token} exactly once`);
+  }
+  return source.replace(token, replacement);
+}
+
+export async function loadPayload(themeRoot) {
+  const rootReal = await fs.realpath(themeRoot);
+  const themePath = await resolveRealInside(path.join(rootReal, "theme.json"), rootReal, "theme.json");
+  const cssPath = await resolveRealInside(path.join(rootReal, "noir-gold.css"), rootReal, "noir-gold.css");
+  const templatePath = await resolveRealInside(path.join(rootReal, "renderer-inject.js"), rootReal, "renderer-inject.js");
+  const themeText = await readLimited(themePath, MAX_THEME_BYTES, "theme.json", "utf8");
+  const theme = JSON.parse(themeText);
+  if (theme.schemaVersion !== 1) throw new Error("Unsupported theme schema");
+  if (theme.customizationRequired !== false) {
+    throw new Error("Theme is not a completed customer theme");
+  }
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(theme.id ?? "") || theme.id.length > 64) {
+    throw new Error("theme.id must be kebab-case and at most 64 characters");
+  }
+  assertThemeText(theme, "name", 100);
+  assertThemeText(theme, "brandTitle", 100);
+  assertThemeText(theme, "brandSubtitle", 100);
+  assertThemeText(theme, "headline", 100);
+  assertThemeText(theme, "tagline", 100);
+  assertThemeText(theme, "signature", 40);
+  assertThemeText(theme, "badge", 24);
+  if (typeof theme.heroAsset !== "string" || path.isAbsolute(theme.heroAsset)) {
+    throw new Error("theme.heroAsset must be a relative path");
   }
 
-  const heroPath = path.resolve(themeRoot, theme.heroAsset);
-  assertInside(heroPath, themeRoot, "hero asset");
+  const heroPath = await resolveRealInside(path.resolve(rootReal, theme.heroAsset), rootReal, "hero asset");
   const [css, template, hero] = await Promise.all([
-    fs.readFile(cssPath, "utf8"),
-    fs.readFile(templatePath, "utf8"),
-    fs.readFile(heroPath),
+    readLimited(cssPath, MAX_TEXT_ASSET_BYTES, "noir-gold.css", "utf8"),
+    readLimited(templatePath, MAX_TEXT_ASSET_BYTES, "renderer-inject.js", "utf8"),
+    readLimited(heroPath, MAX_HERO_BYTES, "hero image"),
   ]);
-  if (hero.length > 16 * 1024 * 1024) {
-    throw new Error("Hero image exceeds the 16 MiB package limit");
+  for (const token of TEMPLATE_TOKENS) {
+    const first = template.indexOf(token);
+    if (first < 0 || template.indexOf(token, first + token.length) >= 0) {
+      throw new Error(`Renderer template must contain ${token} exactly once`);
+    }
   }
+
   const heroDataUrl = `data:${mimeFor(heroPath)};base64,${hero.toString("base64")}`;
+  let expression = replaceExactlyOnce(template, "__NOIR_CSS_JSON__", JSON.stringify(css));
+  expression = replaceExactlyOnce(expression, "__NOIR_THEME_JSON__", JSON.stringify(theme));
+  expression = replaceExactlyOnce(expression, "__NOIR_HERO_JSON__", JSON.stringify(heroDataUrl));
   return {
     theme,
-    expression: template
-      .replace("__NOIR_CSS_JSON__", JSON.stringify(css))
-      .replace("__NOIR_THEME_JSON__", JSON.stringify(theme))
-      .replace("__NOIR_HERO_JSON__", JSON.stringify(heroDataUrl)),
+    rootReal,
+    heroPath,
+    heroBytes: hero.length,
+    expression,
   };
 }
 
+export function isAllowedTarget(target, port) {
+  if (!target || target.type !== "page" || typeof target.url !== "string" ||
+      !target.url.startsWith("app://") || typeof target.webSocketDebuggerUrl !== "string") {
+    return false;
+  }
+  try {
+    const socketUrl = new URL(target.webSocketDebuggerUrl);
+    return socketUrl.protocol === "ws:" &&
+      socketUrl.hostname === "127.0.0.1" &&
+      Number(socketUrl.port) === Number(port);
+  } catch {
+    return false;
+  }
+}
+
+async function fetchJson(url, timeoutMs) {
+  const response = await fetch(url, {
+    redirect: "error",
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!response.ok) throw new Error(`CDP endpoint returned HTTP ${response.status}`);
+  return response.json();
+}
+
 class CdpSession {
-  constructor(target) {
+  constructor(target, commandTimeoutMs) {
     this.target = target;
+    this.commandTimeoutMs = commandTimeoutMs;
     this.socket = new WebSocket(target.webSocketDebuggerUrl);
     this.nextId = 1;
     this.pending = new Map();
@@ -87,16 +192,42 @@ class CdpSession {
     this.closed = false;
   }
 
+  failAll(error) {
+    for (const pending of this.pending.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(error);
+    }
+    this.pending.clear();
+  }
+
   async open() {
     await new Promise((resolve, reject) => {
-      this.socket.addEventListener("open", resolve, { once: true });
-      this.socket.addEventListener("error", reject, { once: true });
+      const cleanup = () => {
+        clearTimeout(timer);
+        this.socket.removeEventListener("open", opened);
+        this.socket.removeEventListener("error", failed);
+      };
+      const opened = () => {
+        cleanup();
+        resolve();
+      };
+      const failed = () => {
+        cleanup();
+        reject(new Error("CDP WebSocket failed to open"));
+      };
+      const timer = setTimeout(() => {
+        cleanup();
+        try { this.socket.close(); } catch {}
+        reject(new Error("CDP WebSocket open timed out"));
+      }, this.commandTimeoutMs);
+      this.socket.addEventListener("open", opened, { once: true });
+      this.socket.addEventListener("error", failed, { once: true });
     });
     this.socket.addEventListener("message", (event) => this.onMessage(event));
+    this.socket.addEventListener("error", () => this.failAll(new Error("CDP WebSocket error")));
     this.socket.addEventListener("close", () => {
       this.closed = true;
-      for (const pending of this.pending.values()) pending.reject(new Error("CDP socket closed"));
-      this.pending.clear();
+      this.failAll(new Error("CDP WebSocket closed"));
     });
     await this.send("Runtime.enable");
     await this.send("Page.enable");
@@ -104,11 +235,19 @@ class CdpSession {
   }
 
   onMessage(event) {
-    const message = JSON.parse(String(event.data));
+    let message;
+    try {
+      message = JSON.parse(String(event.data));
+    } catch {
+      this.failAll(new Error("CDP returned invalid JSON"));
+      this.close();
+      return;
+    }
     if (message.id) {
       const pending = this.pending.get(message.id);
       if (!pending) return;
       this.pending.delete(message.id);
+      clearTimeout(pending.timer);
       if (message.error) pending.reject(new Error(`${message.error.message} (${message.error.code})`));
       else pending.resolve(message.result);
       return;
@@ -126,8 +265,18 @@ class CdpSession {
     if (this.closed) return Promise.reject(new Error("CDP session is closed"));
     return new Promise((resolve, reject) => {
       const id = this.nextId++;
-      this.pending.set(id, { resolve, reject });
-      this.socket.send(JSON.stringify({ id, method, params }));
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        reject(new Error(`CDP command timed out: ${method}`));
+      }, this.commandTimeoutMs);
+      this.pending.set(id, { resolve, reject, timer });
+      try {
+        this.socket.send(JSON.stringify({ id, method, params }));
+      } catch (error) {
+        clearTimeout(timer);
+        this.pending.delete(id);
+        reject(error);
+      }
     });
   }
 
@@ -146,16 +295,17 @@ class CdpSession {
   }
 
   close() {
-    if (!this.closed) this.socket.close();
+    if (this.closed) return;
     this.closed = true;
+    this.failAll(new Error("CDP session closed"));
+    try { this.socket.close(); } catch {}
   }
 }
 
-async function listTargets(port) {
-  const response = await fetch(`http://127.0.0.1:${port}/json/list`);
-  if (!response.ok) throw new Error(`CDP target list returned HTTP ${response.status}`);
-  const targets = await response.json();
-  return targets.filter((target) => target.type === "page" && target.url.startsWith("app://"));
+async function listTargets(port, timeoutMs) {
+  const targets = await fetchJson(`http://127.0.0.1:${port}/json/list`, timeoutMs);
+  if (!Array.isArray(targets)) throw new Error("CDP target list is not an array");
+  return targets.filter((target) => isAllowedTarget(target, port));
 }
 
 async function waitForTargets(port, timeoutMs) {
@@ -163,18 +313,18 @@ async function waitForTargets(port, timeoutMs) {
   let lastError = null;
   while (Date.now() < deadline) {
     try {
-      const targets = await listTargets(port);
+      const targets = await listTargets(port, Math.min(1500, timeoutMs));
       if (targets.length > 0) return targets;
     } catch (error) {
       lastError = error;
     }
     await new Promise((resolve) => setTimeout(resolve, 350));
   }
-  throw new Error(`No Codex renderer target on 127.0.0.1:${port}: ${lastError?.message ?? "timed out"}`);
+  throw new Error(`No safe Codex renderer target on 127.0.0.1:${port}: ${lastError?.message ?? "timed out"}`);
 }
 
-async function connect(target, expression) {
-  const session = await new CdpSession(target).open();
+async function connect(target, expression, commandTimeoutMs) {
+  const session = await new CdpSession(target, commandTimeoutMs).open();
   if (expression) {
     await session.send("Page.addScriptToEvaluateOnNewDocument", { source: expression });
   }
@@ -212,6 +362,7 @@ async function verifySession(session) {
       chromePresent: Boolean(chrome),
       chromePointerEvents: chrome ? getComputedStyle(chrome).pointerEvents : null,
       homePresent: Boolean(home),
+      modalOpen: Boolean(document.querySelector('[role="dialog"]')),
       cards,
       composer: box(document.querySelector(".composer-surface-chrome")),
       sidebar: box(document.querySelector("aside.app-shell-left-panel")),
@@ -251,7 +402,7 @@ async function runOneShot(options) {
   const targets = await waitForTargets(options.port, options.timeoutMs);
   const results = [];
   for (const target of targets) {
-    const session = await connect(target, loaded?.expression ?? null);
+    const session = await connect(target, loaded?.expression ?? null, options.commandTimeoutMs);
     try {
       if (options.mode === "remove") await removeSession(session);
       if (options.mode === "once") await session.evaluate(loaded.expression);
@@ -283,16 +434,16 @@ async function runWatch(options) {
   while (!stopping) {
     let targets = [];
     try {
-      targets = await listTargets(options.port);
+      targets = await listTargets(options.port, Math.min(1500, options.commandTimeoutMs));
     } catch (error) {
-      if (!attachedOnce) console.error(`[noir-gold] ${error.message}`);
+      if (!attachedOnce) console.error(`[codex-skin-forge] ${error.message}`);
     }
 
     if (targets.length > 0) {
       attachedOnce = true;
       lastTargetAt = Date.now();
     } else if (attachedOnce && Date.now() - lastTargetAt >= options.idleExitMs) {
-      console.log("[noir-gold] Codex session ended; injector exiting.");
+      console.log("[codex-skin-forge] Codex session ended; injector exiting.");
       break;
     }
 
@@ -307,17 +458,17 @@ async function runWatch(options) {
     for (const target of targets) {
       if (sessions.has(target.id)) continue;
       try {
-        const session = await connect(target, expression);
+        const session = await connect(target, expression, options.commandTimeoutMs);
         session.on("Page.loadEventFired", () => {
           setTimeout(() => session.evaluate(expression).catch((error) => {
-            console.error(`[noir-gold] reinjection failed: ${error.message}`);
+            console.error(`[codex-skin-forge] reinjection failed: ${error.message}`);
           }), 250);
         });
         await session.evaluate(expression);
         sessions.set(target.id, session);
-        console.log(`[noir-gold] injected ${theme.id} into ${target.id}`);
+        console.log(`[codex-skin-forge] injected ${theme.id} for session ${options.sessionId} into ${target.id}`);
       } catch (error) {
-        console.error(`[noir-gold] target ${target.id} failed: ${error.message}`);
+        console.error(`[codex-skin-forge] target ${target.id} failed: ${error.message}`);
       }
     }
     await new Promise((resolve) => setTimeout(resolve, 850));
@@ -326,6 +477,29 @@ async function runWatch(options) {
   for (const session of sessions.values()) session.close();
 }
 
-const options = parseArgs(process.argv.slice(2));
-if (options.mode === "watch") await runWatch(options);
-else await runOneShot(options);
+async function main() {
+  const options = parseArgs(process.argv.slice(2));
+  if (options.mode === "validate-theme") {
+    const loaded = await loadPayload(options.themeRoot);
+    console.log(JSON.stringify({
+      mode: options.mode,
+      themeId: loaded.theme.id,
+      themeVersion: loaded.theme.version,
+      heroBytes: loaded.heroBytes,
+    }, null, 2));
+  } else if (options.mode === "watch") {
+    await runWatch(options);
+  } else {
+    await runOneShot(options);
+  }
+}
+
+const invokedPath = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : null;
+if (invokedPath === import.meta.url) {
+  try {
+    await main();
+  } catch (error) {
+    console.error(`[codex-skin-forge] ${error?.stack ?? error}`);
+    process.exitCode = 1;
+  }
+}

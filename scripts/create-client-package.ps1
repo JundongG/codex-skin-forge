@@ -6,7 +6,7 @@ param(
     [string]$Tagline = '与你一起，用代码完成下一件作品',
     [string]$Signature = '',
     [string]$Badge = 'EXCLUSIVE',
-    [string]$Version = '0.3.0',
+    [string]$Version = '0.3.1',
     [string]$AssetSource = '客户提供或经客户确认的定制设计稿',
     [switch]$ConfirmAssetRights,
     [string]$OutputDirectory = (Join-Path $PSScriptRoot '..\release')
@@ -18,10 +18,11 @@ $workspace = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $buildRoot = Join-Path $workspace 'build'
 $releaseRoot = [IO.Path]::GetFullPath($OutputDirectory)
 $safeVersion = $Version -replace '[^0-9A-Za-z._-]', '-'
-$packageName = "Codex-Noir-Gold-$ClientId-$safeVersion"
+$packageName = "Codex-Skin-Forge-Noir-Gold-$ClientId-$safeVersion"
 $staging = Join-Path $buildRoot $packageName
 $zipPath = Join-Path $releaseRoot ($packageName + '.zip')
 $utf8NoBom = New-Object Text.UTF8Encoding($false)
+$buildSucceeded = $false
 
 function Assert-Inside([string]$Path, [string]$Root, [string]$Label) {
     $full = [IO.Path]::GetFullPath($Path).TrimEnd('\', '/')
@@ -34,18 +35,21 @@ function Assert-Inside([string]$Path, [string]$Root, [string]$Label) {
 
 function Assert-SingleLineText([string]$Value, [string]$Label, [int]$MaximumLength) {
     if ([string]::IsNullOrWhiteSpace($Value)) { throw "$Label cannot be blank." }
-    if ($Value -match '[\r\n\x00-\x08\x0B\x0C\x0E-\x1F]') { throw "$Label must be a single printable line." }
+    if ($Value -match '[\r\n\x00-\x08\x0B\x0C\x0E-\x1F\u202A-\u202E\u2066-\u2069]') {
+        throw "$Label must be a single printable line without bidirectional controls."
+    }
     if ($Value.Length -gt $MaximumLength) { throw "$Label exceeds $MaximumLength characters." }
 }
 
 if (-not $ConfirmAssetRights) { throw 'Use -ConfirmAssetRights only after the customer confirms rights to the supplied or designed image.' }
 if ([string]::IsNullOrWhiteSpace($Signature)) { $Signature = $ClientName }
+if ($ClientId.Length -gt 64) { throw 'ClientId cannot exceed 64 characters.' }
 Assert-SingleLineText $ClientName 'ClientName' 60
 Assert-SingleLineText $Tagline 'Tagline' 100
 Assert-SingleLineText $Signature 'Signature' 40
 Assert-SingleLineText $Badge 'Badge' 24
 Assert-SingleLineText $AssetSource 'AssetSource' 200
-if ($Version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'Version must use semantic version form such as 0.3.0.' }
+if ($Version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'Version must use semantic version form such as 0.3.1.' }
 $heroSource = (Resolve-Path -LiteralPath $HeroImage).Path
 $extension = [IO.Path]::GetExtension($heroSource).ToLowerInvariant()
 if ($extension -notin @('.png', '.jpg', '.jpeg')) { throw 'HeroImage must be a PNG or JPEG design.' }
@@ -57,12 +61,19 @@ $image = [Drawing.Image]::FromFile($heroSource)
 try {
     $width = $image.Width
     $height = $image.Height
+    $rawFormat = $image.RawFormat.Guid
 } finally {
     $image.Dispose()
 }
 if ($width -lt 1200 -or $height -lt 600) {
     throw "HeroImage is ${width}x${height}; prepare a customer visual of at least 1200x600 (1600x760 recommended)."
 }
+$pixelCount = [long]$width * [long]$height
+if ($width -gt 8192 -or $height -gt 8192 -or $pixelCount -gt 40000000) {
+    throw 'HeroImage exceeds the safe 8192x8192 / 40-megapixel limit.'
+}
+$expectedFormat = if ($extension -eq '.png') { [Drawing.Imaging.ImageFormat]::Png.Guid } else { [Drawing.Imaging.ImageFormat]::Jpeg.Guid }
+if ($rawFormat -ne $expectedFormat) { throw 'HeroImage file content does not match its PNG/JPEG extension.' }
 
 [IO.Directory]::CreateDirectory($buildRoot) | Out-Null
 [IO.Directory]::CreateDirectory($releaseRoot) | Out-Null
@@ -76,6 +87,9 @@ try {
         Copy-Item -LiteralPath $item.FullName -Destination $staging -Recurse -Force
     }
     Copy-Item -LiteralPath (Join-Path $workspace 'engine') -Destination $staging -Recurse -Force
+    foreach ($relative in @('LICENSE', 'NOTICE.md', 'ASSET_POLICY.md')) {
+        Copy-Item -LiteralPath (Join-Path $workspace $relative) -Destination $staging -Force
+    }
     $clientRoot = Join-Path $staging 'client'
     $assetRoot = Join-Path $clientRoot 'assets'
     [IO.Directory]::CreateDirectory($assetRoot) | Out-Null
@@ -86,6 +100,7 @@ try {
     Copy-Item -LiteralPath $heroSource -Destination $heroTarget -Force
 
     $theme = Get-Content -LiteralPath (Join-Path $workspace 'advanced\noir-gold\theme.template.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+    $engineVersion = [string]$theme.version
     $theme.id = $ClientId
     $theme.name = "$ClientName 专属 Codex 皮肤"
     $theme.version = $Version
@@ -102,7 +117,9 @@ try {
         schemaVersion = 1
         name = $theme.name
         version = $Version
-        product = 'Codex Noir Gold Customer Skin'
+        product = 'Codex Skin Forge Customer Skin'
+        project = 'https://github.com/JundongG/codex-skin-forge'
+        engineVersion = $engineVersion
         platform = 'windows'
         architecture = 'loopback-cdp-renderer-injection'
         client = [ordered]@{
@@ -157,12 +174,24 @@ try {
 
     if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
     Compress-Archive -Path (Join-Path $staging '*') -DestinationPath $zipPath -CompressionLevel Optimal
+    if ((Get-Item -LiteralPath $zipPath).Length -gt 24MB) {
+        throw 'Customer ZIP exceeds the 24 MiB delivery limit.'
+    }
     $zipHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
     [IO.File]::WriteAllText($zipPath + '.sha256', "$zipHash  $([IO.Path]::GetFileName($zipPath))$([Environment]::NewLine)", $utf8NoBom)
+    $buildSucceeded = $true
     Write-Output "BUILT: $zipPath"
     Write-Output "SHA256: $zipHash"
     Write-Output "CUSTOMER HERO: ${width}x${height} $heroHash"
 } finally {
+    if (-not $buildSucceeded) {
+        foreach ($partial in @($zipPath, $zipPath + '.sha256')) {
+            if (Test-Path -LiteralPath $partial) {
+                Assert-Inside $partial $releaseRoot 'partial release cleanup' | Out-Null
+                Remove-Item -LiteralPath $partial -Force
+            }
+        }
+    }
     if (Test-Path -LiteralPath $staging) {
         Assert-Inside $staging $buildRoot 'staging cleanup' | Out-Null
         Remove-Item -LiteralPath $staging -Recurse -Force

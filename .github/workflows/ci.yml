@@ -27,6 +27,10 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install pinned PowerShell analyzer
+        shell: powershell
+        run: Install-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope CurrentUser -Force
+
       - name: Run source and package checks
         shell: powershell
         run: powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\build-and-verify.ps1

@@ -21,6 +21,12 @@ try {
     } finally { $bitmap.Dispose() }
 
     & (Join-Path $workspace 'scripts\test-advanced.ps1')
+    if (Get-Module -ListAvailable PSScriptAnalyzer) {
+        & (Join-Path $workspace 'scripts\test-powershell-analysis.ps1')
+    } else {
+        Write-Warning 'PSScriptAnalyzer is not installed; CI installs the pinned analyzer before this test.'
+    }
+    & (Join-Path $workspace 'tests\common-lifecycle.test.ps1')
 
     $rightsRejected = $false
     try {
@@ -46,6 +52,19 @@ try {
     } catch { $smallRejected = $true }
     if (-not $smallRejected) { throw 'Packager accepted a customer image below 1200x600.' }
 
+    $fakeJpeg = Join-Path $tempRoot 'fake.jpg'
+    Copy-Item -LiteralPath $imagePath -Destination $fakeJpeg
+    $formatRejected = $false
+    try {
+        & (Join-Path $workspace 'scripts\create-client-package.ps1') `
+            -ClientId 'must-fail-format' `
+            -ClientName '格式伪装测试' `
+            -HeroImage $fakeJpeg `
+            -ConfirmAssetRights `
+            -OutputDirectory $tempRoot | Out-Null
+    } catch { $formatRejected = $true }
+    if (-not $formatRejected) { throw 'Packager accepted PNG content with a JPEG extension.' }
+
     & (Join-Path $workspace 'scripts\create-client-package.ps1') `
         -ClientId 'automated-test' `
         -ClientName '自动化测试客户' `
@@ -57,6 +76,7 @@ try {
     $zip = Get-ChildItem -LiteralPath $tempRoot -Filter '*.zip' -File | Select-Object -First 1
     if (-not $zip) { throw 'Build test did not produce a ZIP.' }
     & (Join-Path $workspace 'scripts\test-release.ps1') -ZipPath $zip.FullName
+    & (Join-Path $workspace 'tests\package-tamper.test.ps1') -ZipPath $zip.FullName
     Write-Output 'End-to-end build and package verification passed.'
 } finally {
     $full = [IO.Path]::GetFullPath($tempRoot)
